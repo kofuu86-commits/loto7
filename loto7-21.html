@@ -1770,14 +1770,35 @@ function UpdateTab({ draws, setDraws }) {
   const MAX_RETRY = 3;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-  async function callAPI() {
-    // PayPay銀行のCSVデータをCORSプロキシ経由で取得
-    const csvUrl = "https://login.paypay-bank.co.jp/lottery/co/loto7jnb.csv";
-    const proxies = [
-      `https://corsproxy.io/?${encodeURIComponent(csvUrl)}`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(csvUrl)}`,
-      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(csvUrl)}`,
-    ];
+ async function callAPI() {
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyxCXtvRkq49vorwwyTX-cR9--teii8C1CcBZZTGXMJldPmdFxFvIEzvLEPIgk7PtES/exec";
+    try {
+      const res = await fetch(GAS_URL, { signal: AbortSignal.timeout(20000) });
+      if (!res.ok) return { status: res.status, error: "取得失敗" };
+      const data = await res.json();
+      if (data.error) return { status: 500, error: data.error };
+      const filtered = (data.draws || []).filter(d => d.round > latestRound);
+      if (filtered.length === 0) return { status: 200, text: '{"draws":[]}' };
+      return { status: 200, text: JSON.stringify({ draws: filtered }) };
+    } catch(e) {
+      return { status: 500, error: e.message };
+    }
+  }
+  async function callAPI_unused() {
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyxCXtvRkq49vorwwyTX-cR9--teii8C1CcBZZTGXMJldPmdFxFvIEzvLEPIgk7PtES/exec";
+    try {
+      const res = await fetch(GAS_URL, { signal: AbortSignal.timeout(20000) });
+      if (!res.ok) return { status: res.status, error: "取得失敗" };
+      const data = await res.json();
+      if (data.error) return { status: 500, error: data.error };
+      const filtered = (data.draws || []).filter(d => d.round > latestRound);
+      if (filtered.length === 0) return { status: 200, text: '{"draws":[]}' };
+      return { status: 200, text: JSON.stringify({ draws: filtered }) };
+    } catch(e) {
+      return { status: 500, error: e.message };
+    }
+  }
+  async function callAPI_unused() { ;
 
     for (const proxyUrl of proxies) {
       try {
