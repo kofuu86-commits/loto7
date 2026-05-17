@@ -62,6 +62,8 @@ function buildPairFrequency(draws, n) {
 }
 
 const REAL_DRAWS = [
+  { round:677, date:"2026-05-15", numbers:[5,6,7,8,15,17,19] },
+  { round:676, date:"2026-05-08", numbers:[2,6,15,19,20,22,27] },
   { round:675, date:"2026-05-01", numbers:[5,8,16,18,24,28,31] },
   { round:674, date:"2026-04-24", numbers:[1,6,7,9,12,22,26] },
   { round:673, date:"2026-04-17", numbers:[6,9,10,12,16,24,32] },
@@ -1716,7 +1718,7 @@ function UpdateTab({ draws, setDraws }) {
 
         if (result.status === 500 || result.status !== 200) {
           setStatus("error");
-          setMsg("⚠ 自動取得に失敗しました。履歴タブの手動入力フォームからデータを追加するか、Claudeに「第○○回のデータを追加して」と依頼してください。");
+          setMsg("⚠ 自動取得に失敗しました。履歴タブの手動入力フォームからデータを追加してください。");
           return;
         }
 
