@@ -9,119 +9,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="LOTO 7"/>
   <title>LOTO 7 予測システム</title>
-
-  <!-- アイコン生成スクリプト（Canvas使用） -->
-  <script>
-    function generateIcon(size) {
-      const c = document.createElement('canvas');
-      c.width = c.height = size;
-      const ctx = c.getContext('2d');
-
-      // 背景：アプリと同じ黒（スプラッシュ時に目立たない）
-      ctx.fillStyle = '#050508';
-      ctx.fillRect(0, 0, size, size);
-
-      const s = size / 512;
-      const cx = size / 2;
-      const cy = size / 2;
-
-      // LOTOブロック
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.roundRect(cx - 190*s, cy - 80*s, 180*s, 160*s, 16*s);
-      ctx.fill();
-
-      // LOTO文字
-      ctx.fillStyle = '#1a3a8f';
-      ctx.font = `italic bold ${80*s}px Arial Black, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText('LOTO', cx - 100*s, cy + 28*s);
-
-      // ロトセブン
-      ctx.font = `bold ${18*s}px sans-serif`;
-      ctx.fillText('ロトセブン', cx - 100*s, cy + 62*s);
-
-      // 7ブロック
-      const grad = ctx.createLinearGradient(cx - 8*s, cy - 80*s, cx + 170*s, cy + 80*s);
-      grad.addColorStop(0, '#ffaa00');
-      grad.addColorStop(1, '#e8192c');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.roundRect(cx - 6*s, cy - 80*s, 196*s, 160*s, 16*s);
-      ctx.fill();
-
-      // 7文字
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `italic bold ${155*s}px Arial Black, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText('7', cx + 96*s, cy + 55*s);
-
-      return c.toDataURL('image/png');
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      // アイコンをlinkタグに設定
-      const icon192 = generateIcon(192);
-      const icon512 = generateIcon(512);
-
-      ['192','512'].forEach(sz => {
-        const link = document.createElement('link');
-        link.rel = 'apple-touch-icon';
-        link.sizes = `${sz}x${sz}`;
-        link.href = sz === '192' ? icon192 : icon512;
-        document.head.appendChild(link);
-      });
-
-      const shortcut = document.createElement('link');
-      shortcut.rel = 'icon';
-      shortcut.type = 'image/png';
-      shortcut.href = icon192;
-      document.head.appendChild(shortcut);
-
-      // manifestをdynamicに生成
-      const manifest = {
-        name: 'LOTO 7 予測システム',
-        short_name: 'LOTO 7',
-        start_url: '.',
-        display: 'standalone',
-        background_color: '#050508',
-        theme_color: '#050508',
-        orientation: 'portrait',
-        icons: [
-          { src: icon192, sizes: '192x192', type: 'image/png' },
-          { src: icon512, sizes: '512x512', type: 'image/png' },
-        ]
-      };
-      const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const mlink = document.createElement('link');
-      mlink.rel = 'manifest';
-      mlink.href = url;
-      document.head.appendChild(mlink);
-
-      // フルスクリーン（ナビゲーションバー非表示）
-      // 最初のタップでフルスクリーンに移行
-      function requestFS() {
-        const el = document.documentElement;
-        if (el.requestFullscreen) el.requestFullscreen();
-        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-      }
-      // アプリ起動後、最初のタップで自動的にフルスクリーンへ
-      document.addEventListener('click', function onFirstTap() {
-        requestFS();
-        document.removeEventListener('click', onFirstTap);
-      }, { once: true });
-    });
-  </script>
-
-  <!-- React & Babel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { font-size:18px; } body { background:#050508; overflow-x:hidden; }
+    html, body, #root { height: 100%; background: #050508; }
     body { overflow-x: hidden; }
   </style>
 </head>
@@ -129,7 +22,6 @@
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
-
 
 const TOTAL_NUMBERS = 37;
 const PICK_COUNT = 7;
@@ -170,6 +62,8 @@ function buildPairFrequency(draws, n) {
 }
 
 const REAL_DRAWS = [
+  { round:677, date:"2026-05-15", numbers:[5,6,7,8,15,17,19] },
+  { round:676, date:"2026-05-08", numbers:[2,6,15,19,20,22,27] },
   { round:675, date:"2026-05-01", numbers:[5,8,16,18,24,28,31] },
   { round:674, date:"2026-04-24", numbers:[1,6,7,9,12,22,26] },
   { round:673, date:"2026-04-17", numbers:[6,9,10,12,16,24,32] },
@@ -1770,86 +1664,20 @@ function UpdateTab({ draws, setDraws }) {
   const MAX_RETRY = 3;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
- async function callAPI() {
+  async function callAPI() {
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyxCXtvRkq49vorwwyTX-cR9--teii8C1CcBZZTGXMJldPmdFxFvIEzvLEPIgk7PtES/exec";
     try {
       const res = await fetch(GAS_URL, { signal: AbortSignal.timeout(20000) });
       if (!res.ok) return { status: res.status, error: "取得失敗" };
       const data = await res.json();
       if (data.error) return { status: 500, error: data.error };
+      // GASから返ってきたdrawsをlatestRoundでフィルタ
       const filtered = (data.draws || []).filter(d => d.round > latestRound);
       if (filtered.length === 0) return { status: 200, text: '{"draws":[]}' };
       return { status: 200, text: JSON.stringify({ draws: filtered }) };
     } catch(e) {
       return { status: 500, error: e.message };
     }
-  }
-  async function callAPI_unused() {
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbyxCXtvRkq49vorwwyTX-cR9--teii8C1CcBZZTGXMJldPmdFxFvIEzvLEPIgk7PtES/exec";
-    try {
-      const res = await fetch(GAS_URL, { signal: AbortSignal.timeout(20000) });
-      if (!res.ok) return { status: res.status, error: "取得失敗" };
-      const data = await res.json();
-      if (data.error) return { status: 500, error: data.error };
-      const filtered = (data.draws || []).filter(d => d.round > latestRound);
-      if (filtered.length === 0) return { status: 200, text: '{"draws":[]}' };
-      return { status: 200, text: JSON.stringify({ draws: filtered }) };
-    } catch(e) {
-      return { status: 500, error: e.message };
-    }
-  }
-  async function callAPI_unused() { ;
-
-    for (const proxyUrl of proxies) {
-      try {
-        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) });
-        if (!res.ok) continue;
-        const text = await res.text();
-        if (!text || text.length < 50) continue;
-
-        // CSVをパース（文字化け対応）
-        const lines = text.split(/\r?\n/).filter(l => l.trim());
-
-        // 各行: 回号,抽選日,本数字1,本数字2,...,本数字7,ボーナス1,ボーナス2,...
-        for (const line of lines) {
-          const cols = line.split(",").map(c => c.trim().replace(/"/g,""));
-          if (cols.length < 9) continue;
-
-          const roundNum = parseInt(cols[0]);
-          if (isNaN(roundNum) || roundNum < 600 || roundNum > 900) continue;
-          if (roundNum <= latestRound) {
-            // 最初の有効行が最新回 → すでに最新
-            return { status:200, text:'{"draws":[]}' };
-          }
-
-          // 日付（YYYY/MM/DD or YYYY-MM-DD形式）
-          const dateRaw = cols[1] || "";
-          const dateMatch = dateRaw.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
-          const date = dateMatch
-            ? `${dateMatch[1]}-${String(dateMatch[2]).padStart(2,"0")}-${String(dateMatch[3]).padStart(2,"0")}`
-            : new Date().toISOString().slice(0,10);
-
-          // 本数字7つ（3列目〜9列目）
-          const nums = [];
-          for (let i = 2; i <= 8; i++) {
-            const n = parseInt(cols[i]);
-            if (!isNaN(n) && n >= 1 && n <= 37) nums.push(n);
-          }
-          if (nums.length !== 7) continue;
-
-          return {
-            status: 200,
-            text: JSON.stringify({
-              draws: [{ round: roundNum, date, numbers: nums.sort((a,b)=>a-b) }]
-            })
-          };
-        }
-
-        return { status:200, text:'{"draws":[]}' };
-      } catch(e) { continue; }
-    }
-
-    return { status:500, error:"データ取得に失敗しました。履歴タブの手動入力をご利用ください。" };
   }
 
   async function handleAutoFetch() {
@@ -1890,7 +1718,7 @@ function UpdateTab({ draws, setDraws }) {
 
         if (result.status === 500 || result.status !== 200) {
           setStatus("error");
-          setMsg("⚠ 自動取得に失敗しました。履歴タブの手動入力フォームからデータを追加するか、Claudeに「第○○回のデータを追加して」と依頼してください。");
+          setMsg("⚠ 自動取得に失敗しました。履歴タブの手動入力フォームからデータを追加してください。");
           return;
         }
 
