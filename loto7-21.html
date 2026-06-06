@@ -83,7 +83,6 @@
       mlink.href = url;
       document.head.appendChild(mlink);
 
-      // フルスクリーン
       document.addEventListener('click', function onFirstTap() {
         const el = document.documentElement;
         if (el.requestFullscreen) el.requestFullscreen();
@@ -92,6 +91,7 @@
       }, { once: true });
     });
   </script>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
@@ -1848,15 +1848,20 @@ function UpdateTab({ draws, setDraws }) {
           d.numbers.length === 7 &&
           d.numbers.every(n => Number.isInteger(n) && n >= 1 && n <= 37) &&
           !draws.some(x => x.round === d.round)
-        );
+        ).sort((a,b) => b.round - a.round);
 
         if (valid.length === 0) {
           setStatus("done");
           setMsg(`第${latestRound}回が最新です。新しいデータはまだありません。`);
         } else {
-          setFetched(valid[0]);
+          setFetched(valid);
           setStatus("done");
-          setMsg(`第${valid[0].round}回のデータを取得しました！`);
+          if (valid.length === 1) {
+            setMsg(`第${valid[0].round}回のデータを取得しました！`);
+          } else {
+            const rounds = valid.map(d => `第${d.round}回`).join("・");
+            setMsg(`${valid.length}件のデータを取得しました！（${rounds}）`);
+          }
         }
         return;
 
@@ -1871,9 +1876,19 @@ function UpdateTab({ draws, setDraws }) {
 
   function handleAdd() {
     if (!fetched) return;
-    const newDraw = { ...fetched, numbers: [...fetched.numbers].sort((a,b)=>a-b) };
-    setDraws(prev => [newDraw, ...prev].sort((a,b)=>b.round-a.round));
-    setMsg(`✓ 第${fetched.round}回をデータベースに追加しました！`);
+    const list = Array.isArray(fetched) ? fetched : [fetched];
+    if (list.length === 0) return;
+    const newDraws = list.map(d => ({ ...d, numbers: [...d.numbers].sort((a,b)=>a-b) }));
+    setDraws(prev => {
+      const existing = new Set(prev.map(x => x.round));
+      const toAdd = newDraws.filter(d => !existing.has(d.round));
+      return [...toAdd, ...prev].sort((a,b)=>b.round-a.round);
+    });
+    if (newDraws.length === 1) {
+      setMsg(`✓ 第${newDraws[0].round}回をデータベースに追加しました！`);
+    } else {
+      setMsg(`✓ ${newDraws.length}件をデータベースに追加しました！`);
+    }
     setFetched(null);
   }
 
@@ -1934,19 +1949,24 @@ function UpdateTab({ draws, setDraws }) {
           <div style={{ fontSize:13, color: status==="error"?"#ff006e":fetched?"#06d6a0":"#ffffffaa", marginBottom: fetched?16:0 }}>
             {msg}
           </div>
-          {fetched && (
+          {fetched && (Array.isArray(fetched) ? fetched : [fetched]).length > 0 && (
             <>
-              <div style={{ fontFamily:"'Noto Sans JP',sans-serif", fontSize:10, color:"#ffffffaa", letterSpacing:3, marginBottom:10 }}>
-                第{fetched.round}回 — {fetched.date}
-              </div>
-              <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
-                {[...fetched.numbers].sort((a,b)=>a-b).map((n,i)=>(
-                  <div key={i} style={{ width:44,height:44,borderRadius:"50%",background:`${COLORS[i]}22`,border:`2px solid ${COLORS[i]}88`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Noto Sans JP',sans-serif",fontSize:14,fontWeight:900,color:COLORS[i] }}>
-                    {String(n).padStart(2,"0")}
+              {(Array.isArray(fetched) ? fetched : [fetched]).map((d, di) => (
+                <div key={d.round} style={{ marginBottom: 14 }}>
+                  <div style={{ fontFamily:"'Noto Sans JP',sans-serif", fontSize:10, color:"#ffffffaa", letterSpacing:3, marginBottom:10 }}>
+                    第{d.round}回 — {d.date}
                   </div>
-                ))}
-              </div>
+                  <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                    {[...d.numbers].sort((a,b)=>a-b).map((n,i)=>(
+                      <div key={i} style={{ width:44,height:44,borderRadius:"50%",background:`${COLORS[i]}22`,border:`2px solid ${COLORS[i]}88`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Noto Sans JP',sans-serif",fontSize:14,fontWeight:900,color:COLORS[i] }}>
+                        {String(n).padStart(2,"0")}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
               <button onClick={handleAdd} style={{
+                marginTop:4,
                 padding:"12px 28px", background:"linear-gradient(135deg,#06d6a022,#06d6a044)",
                 border:"1px solid #06d6a077", borderRadius:10, color:"#06d6a0",
                 fontFamily:"'Noto Sans JP',sans-serif", fontSize:12, fontWeight:700,
